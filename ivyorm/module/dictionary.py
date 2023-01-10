@@ -75,7 +75,7 @@ class Dictionary:
 
     @property
     def modelPath(self):
-        return os.getcwd() + '/model/'
+        return ''#os.getcwd() + '/model/'
         
 
 

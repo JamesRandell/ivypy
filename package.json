@@ -2,7 +2,7 @@
     "name": "ivypy",
     "version": "1.0.0",
     "scripts": {
-        "run": "npx nodemon --exec python run.py"
+        "run": "npx nodemon --exec python test.py"
     },
     "dependencies": {
         "nodemon": "^2.0.14"

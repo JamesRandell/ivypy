@@ -50,6 +50,7 @@ class Datasource(Dictionary, Validation):
         self.error = {}
         self.id: any
 
+        self.field(self.field_spec.keys())
         self.database(self.database_spec['name'])
         self.table(self.table_spec['name'])
         self.pk(self.table_spec['pk'])
