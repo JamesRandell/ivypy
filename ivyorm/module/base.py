@@ -1,7 +1,6 @@
 import json
 from jinja2 import Template, Environment, FileSystemLoader
-from module.connection import Connection
-from module.shell import Shell
+from .connection import Connection
 
 
 conn = Connection()

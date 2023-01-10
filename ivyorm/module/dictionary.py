@@ -1,5 +1,5 @@
-from module.util.console import Console
-from module.file import File
+from .util import Console
+from .file import File
 import json
 import jsonschema
 from jsonschema import validate

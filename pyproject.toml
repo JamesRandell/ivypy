@@ -1,6 +1,6 @@
 [tool.poetry]
-name = "ivypy"
-version = "0.1.0"
+name = "ivyorm"
+version = "0.1.15"
 description = "An ORM for Python"
 authors = ["James Randell <jamesrandell@me.com>"]
 license = "MIT"

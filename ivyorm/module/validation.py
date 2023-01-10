@@ -1,4 +1,4 @@
-from module.util.console import Console
+from .util import Console
 
 class Validation:
 

@@ -1,5 +1,5 @@
-from module.util.console import Console
-from module.interface.IConnection import Base
+from ..util import Console
+from ..interface.IConnection import Base
 
 import psycopg2
 import psycopg2.extras

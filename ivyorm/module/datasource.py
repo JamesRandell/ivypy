@@ -1,9 +1,9 @@
-from module.util.console import Console
-from module.validation import Validation
+from .util import Console
+from .validation import Validation
 
 from importlib import import_module
 
-from module.dictionary import Dictionary
+from .dictionary import Dictionary
 
 class Datasource(Dictionary, Validation):
 
@@ -45,7 +45,7 @@ class Datasource(Dictionary, Validation):
         
         database_type = self.database_spec['type']
 
-        self.db = import_module(f'module.connection.{database_type}').Connection()
+        self.db = import_module(f'.module.connection.{database_type}', package='ivyorm').Connection()
         self._data = {}
         self.error = {}
         self.id: any
