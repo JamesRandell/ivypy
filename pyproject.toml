@@ -1,0 +1,15 @@
+[tool.poetry]
+name = "ivypy"
+version = "0.1.0"
+description = "An ORM for Python"
+authors = ["James Randell <jamesrandell@me.com>"]
+license = "MIT"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
