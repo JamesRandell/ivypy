@@ -180,7 +180,7 @@ class Connection(Base,object):
         length = len(whereList)
         counter = 0
 
-        self.query_parts_og['data'].append([])
+        self.query_parts['data'].append([])
 
         for field, value, operation, group_operation in whereList:
 
@@ -190,11 +190,16 @@ class Connection(Base,object):
             else:
                 group_operation = ''
 
+            if len(whereList) == 1:
+                counter = ''
+            
             whereArr.append(f'("{field}" {self._translate(operation)} %({field}{counter})s) {group_operation}')
             data_field_name = f'{field}{counter}'
-            self.query_parts_og['data'][0][f'{field}{counter}'] = value
+            self.query_parts['data'][0][f'{field}{counter}'] = value
 
-            counter = counter + 1
+            if type(counter) == int:
+                counter = counter + 1
+
         return 'WHERE ' + ' '.join(whereArr)
 
 
@@ -258,15 +263,16 @@ class Connection(Base,object):
 
 
     def _action_update(self):
-        Console.error(self.query_parts)
         Console.error(self.query_parts_og)
+        Console.error(self.query_parts)
 
         rowArr = []
         for field, value in self.query_parts['data'][0].items():
-            rowArr.append(f'"{field}" = %({str(field)})s')
+            if field not in self.query_parts_og['pk']:
+                rowArr.append(f'"{field}" = %({str(field)})s')
 
 
-        return self.query_parts['action'] + ' ' + self.query_parts['table'] + ' SET ' + ','.join(rowArr)
+        return self.query_parts['action'] + ' ' + self.query_parts['table'] + ' SET ' + ','.join(rowArr) + ' ' + self.query_parts['where']
 
     def _reset(self):
         self.query_parts = self.query_parts_og

@@ -112,8 +112,9 @@ class Datasource(Dictionary, Validation):
     def update(self, dataInput: dict or list = None):
         self.queryParts['action'] = 'update'
 
+        if dataInput:
+            self.data = dataInput
 
-        Console.log(self.queryParts)
         data = self._data[0]
         pkList = self.queryParts['pk']
         
@@ -133,7 +134,6 @@ class Datasource(Dictionary, Validation):
         '''
         all of the pk requirements have not been met and we have no where
         '''
-
         if no_of_pk != counter and self.queryParts['where'] is None:
             self.error = 'No PK passed in'
             return None
@@ -143,13 +143,7 @@ class Datasource(Dictionary, Validation):
                 items = [field, value, '=']
                 self.where(items)
 
-
-        '''
-        remove the pk (if it's in the data variable)
-        '''
-        Console.log(self.queryParts)
-       
-       
+        Console.ok(self.queryParts)
         success, result = self.db.query(self.queryParts)
 
         return success
@@ -178,18 +172,13 @@ class Datasource(Dictionary, Validation):
 
 
     def where(self, fieldArr: list):
-        Console.info(fieldArr)
-
         '''
-        fieldArr is a list of lists, these sub lists will at minimum contain 2 values, up to 4 values
+        fieldArr is a list, these sub lists will at minimum contain 2 values, up to 4 values
         we access the 3rd and 4th value with *args, but need to test for them and assign defaults if
         they don't exist
         '''
         field, value, *args = fieldArr
-        #for field, value, *args in fieldArr:
-        Console.log(field)
-        Console.log(value)
-        Console.log(*args)
+
         operation = '='
         group_operation = 'AND'
         if args:

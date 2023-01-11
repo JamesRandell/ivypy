@@ -17,7 +17,7 @@ print(123)
 print(test.data)
 print(456)
 
-arr = {'addressID':100,'fdfd':1,'code':'something else','ID':2}
+arr = {'addressID':100,'code':'something else','ID':2}
 test.update(arr)
 
 print(987)
