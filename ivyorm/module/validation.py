@@ -13,13 +13,26 @@ class Validation:
         self.table_spec = {}
         self.database_spec = {}
 
-    def fieldExists(self, field: list):
-        field_copy: list = field
+    '''
+    returns a list of fields that exist from a str or list input of fields
+    '''
+    def fieldExists(self, field: str or list):
+        
+        field_copy: list = []
+        if type(field) == str:
+            field_copy.append(field)
+            field = field_copy
+        elif type(field) == list:
+            field_copy: list = field
+        else:
+            return    
+
+
         for key in list(field):
             if key not in self.field_spec:
                 field_copy.remove(key)
 
-        return field
+        return field_copy
 
 
     def check(self, dataDict: dict):

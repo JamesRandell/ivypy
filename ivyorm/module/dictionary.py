@@ -109,3 +109,32 @@ class Dictionary:
         self.database_spec = model['databaseSpec']
 
         #return model
+
+    '''
+    this converts a specific word that the user may have entered'''
+    def translate(self, value):
+        match value:
+            case 'eq':
+                return '='
+            case 'gt':
+                return '>'
+            case 'lt':
+                return '<'
+            case 'gte':
+                return '>='
+            case 'lte':
+                return '<='
+            case '=':
+                return '='
+            case 'and':
+                return 'AND'
+            case 'AND':
+                return 'AND'
+            case 'or':
+                return 'OR'
+            case 'OR':
+                return 'OR'
+        
+        Console.warn(f'Translation failed for value: {value}')
+        return None
+            

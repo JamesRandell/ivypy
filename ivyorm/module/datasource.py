@@ -10,13 +10,13 @@ class Datasource(Dictionary, Validation):
     queryParts:dict = {
         'field':{},
         'pagination':{},
-        'where':{},
-        'order':{},
+        'where':[],
+        'order':[],
         'action':'',
         'table': '',
         'database': '',
         'pk':{},
-        'data':{}
+        'data':[]
     }
     
     @property
@@ -25,18 +25,30 @@ class Datasource(Dictionary, Validation):
 
 
     @data.setter
-    def data(self, dataDict):
-        dataList: list = [*dataDict]
-        self.queryParts["field"] = Validation.fieldExists(self, dataList)
-        
-        dataDict, error = Validation.check(self, dataDict)
+    def data(self, dataInput: dict or list):
 
-        
-        self.error = error
+        if type(dataInput) is dict:
+            data = [dataInput]
+        else:
+            data = dataInput
 
-        for field in self.queryParts["field"]:
-            self._data[field] = dataDict[field]
-            self.queryParts['data'][field] = dataDict[field]
+        #dataList: list = [*dataDict]
+        fieldList = [*data[0],]
+        self.queryParts["field"] = Validation.fieldExists(self, fieldList)
+        
+        for row in data:
+            Console.ok(row)
+            dataDict, error = Validation.check(self, row)
+        
+            self.error = error
+
+            rowData = {}
+            for field in self.queryParts["field"]:
+                #self._data[field] = dataDict[field]
+                #self.queryParts['data'][field] = dataDict[field]
+                rowData[field] = dataDict[field]
+
+            self._data.append(rowData)
 
 
     def __init__(self, schemaFile):
@@ -46,7 +58,7 @@ class Datasource(Dictionary, Validation):
         database_type = self.database_spec['type']
 
         self.db = import_module(f'.module.connection.{database_type}', package='ivyorm').Connection()
-        self._data = {}
+        self._data = []
         self.error = {}
         self.id: any
 
@@ -62,46 +74,148 @@ class Datasource(Dictionary, Validation):
         if not self.error:
 
             success, result = self.db.query(self.queryParts)
-            self._data = result
+            #self._data = result
+
+            if result:
+                Console.warn(result)
+                self._data = result
+            
             return success
             
 
         return False
 
 
-    def insert(self, data: dict = None):
+    def insert(self, dataInput: dict or list = None):
         self.queryParts['action'] = 'insert'
+        h = dataInput
 
-        if data:
-            self.data = data
+        if dataInput:
+            if type(dataInput) is list:
+                self.data = dataInput
+            
+            if type(dataInput) is dict:
+                self.data = dataInput
 
         if not self.error:
+            self.queryParts['data'] = self.data
+
             success, result = self.db.query(self.queryParts)
-            self.id = result[0][self.queryParts['pk'][0].lower()]
-            self.data[ self.queryParts['pk'][0] ] = self.id
+            self.id = result[0][self.queryParts['pk'][0]]
+            #self.data[0][ self.queryParts['pk'][0] ] = self.id
+            
             return success
 
         return False
 
+
+    def update(self, dataInput: dict or list = None):
+        self.queryParts['action'] = 'update'
+
+
+        Console.log(self.queryParts)
+        data = self._data[0]
+        pkList = self.queryParts['pk']
+        
+        counter = 0
+        no_of_pk = len(pkList)
+        
+        where = {}
+        for pk in pkList:
+
+            for field in data.keys():
+
+                if field == pk:
+                    counter = counter + 1
+                    where[field] = self.data[0][field]
+
+
+        '''
+        all of the pk requirements have not been met and we have no where
+        '''
+
+        if no_of_pk != counter and self.queryParts['where'] is None:
+            self.error = 'No PK passed in'
+            return None
+
+        if no_of_pk == counter:
+            for field, value in where.items():
+                items = [field, value, '=']
+                self.where(items)
+
+
+        '''
+        remove the pk (if it's in the data variable)
+        '''
+        Console.log(self.queryParts)
+       
+       
+        success, result = self.db.query(self.queryParts)
+
+        return success
 
     def field(self, fields: list):
         Console.info('field')
         self.queryParts["field"] = Validation.fieldExists(self, fields)
         return self
     
+    '''
+    Expects a list of lists
+    '''
+    def order(self, fieldArr: list):
+        for field, direction in fieldArr:
+            
+            if not Validation.fieldExists(self, field):
+                continue
 
-    def order(self, fields):
-        Console.info('order')
+            if direction not in ['DESC','desc','DSC','dsc','ASC','asc']:
+                continue
+
+            stuff_to_add = [field, direction]
+            self.queryParts["order"].append(stuff_to_add)
+
         return self
 
 
-    def where(self, fields):
-        Console.info('where')
+    def where(self, fieldArr: list):
+        Console.info(fieldArr)
+
+        '''
+        fieldArr is a list of lists, these sub lists will at minimum contain 2 values, up to 4 values
+        we access the 3rd and 4th value with *args, but need to test for them and assign defaults if
+        they don't exist
+        '''
+        field, value, *args = fieldArr
+        #for field, value, *args in fieldArr:
+        Console.log(field)
+        Console.log(value)
+        Console.log(*args)
+        operation = '='
+        group_operation = 'AND'
+        if args:
+            if len(args) == 1:
+                tmp = super().translate(args[0])
+                if tmp:
+                    operation = tmp
+                else:
+                    Console.warn(f'Operation symbol {args[0]} not found. Defaulting to {operation}')
+
+            if len(args) == 2:
+                tmp = super().translate(args[1])
+                if tmp:
+                    group_operation = tmp
+                else:
+                    Console.warn(f'Group operation symbol {args[1]} not found. Defaulting to {group_operation}')
+
+        stuff_to_add = [field, value, operation, group_operation]
+        self.queryParts["where"].append(stuff_to_add)
+
         return self
 
 
-    def limit(self, fields):
+    def limit(self, value):
         Console.info('limit')
+        self.queryParts["pagination"]["limit"] = value
         return self    
 
 

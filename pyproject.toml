@@ -1,10 +1,10 @@
 [tool.poetry]
 name = "ivyorm"
-version = "0.1.15"
+version = "0.1.16"
 description = "An ORM for Python"
 authors = ["James Randell <jamesrandell@me.com>"]
 license = "MIT"
-readme = "README.md"
+readme = "whatisivyorm.md"
 
 [tool.poetry.dependencies]
 python = "^3.11"

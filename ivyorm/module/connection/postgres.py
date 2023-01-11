@@ -60,6 +60,7 @@ class Connection(Base,object):
         if hasattr(self, do) and callable(func := getattr(self, do)):
             command = func()
 
+        Console.log(self.query_parts)
         Console.log(f'{command}')
         success, data = self._run(command)
         Console.db(data)
@@ -73,7 +74,15 @@ class Connection(Base,object):
         success: bool
         
         try:
-            cursor.execute(queryStr, self.query_parts['data'])
+            '''
+            little check to see if we're working with a single row of data (a dict)
+            '''
+            Console.ok(self.query_parts['data'])
+            if len(self.query_parts['data']) > 0:
+                cursor.execute(queryStr, self.query_parts['data'][0])
+            else:
+                cursor.execute(queryStr)
+            
             success = True
         except Exception as err:
             Console.error(f'{err}')
@@ -128,24 +137,66 @@ class Connection(Base,object):
 
 
     def _field(self, fieldArr):
+        if not fieldArr:
+            return ''
+
+        fieldArr = [f'"{field}"' for field in fieldArr]
+
         string = ','.join(fieldArr)
         return string
 
 
-    def _order(self, value):
-        pass
+    def _order(self, value: list):
+        if not value:
+            return ''
+
+        orderArr: list = []
+        for field, direction in value:
+            orderArr.append(f'"{field}" {direction}')
+        
+        
+        return 'ORDER BY ' + ','.join(orderArr)
 
 
     def _pagination(self, value):
-        return(f'LIMIT {value}')
+
+        if not value:
+            return ''
+
+        limit = value["limit"]
+
+        return(f'LIMIT {limit}')
 
 
     def _table(self, value):
         return(f'{value}')
 
 
-    def _where(self, value):
-        pass
+    def _where(self, whereList: list):
+        if not whereList:
+            return ''
+        
+        whereArr: list = []
+        length = len(whereList)
+        counter = 0
+
+        self.query_parts_og['data'].append([])
+
+        for field, value, operation, group_operation in whereList:
+
+            ## exclude the final group_operation so it doesn't interfere with the remainder of our query after the WHERE clause
+            if counter < length-1:
+                group_operation = self._translate(group_operation)
+            else:
+                group_operation = ''
+
+            whereArr.append(f'("{field}" {self._translate(operation)} %({field}{counter})s) {group_operation}')
+            data_field_name = f'{field}{counter}'
+            self.query_parts_og['data'][0][f'{field}{counter}'] = value
+
+            counter = counter + 1
+        return 'WHERE ' + ' '.join(whereArr)
+
 
 
     def _database(self, value):
@@ -157,8 +208,9 @@ class Connection(Base,object):
 
 
     def _pk(self, value):
-        return value
-        return ','.join(value)
+        return [f'"{field}"' for field in value]
+        
+        
 
 
     def _action_create(self):
@@ -166,7 +218,7 @@ class Connection(Base,object):
         for field, schema in self.query_parts_og['field'].items():
 
             # build up each column with various attributes like, auto, pk, not null etc
-            line = [field]
+            line = [f'"{field}"']
 
             if 'auto' in schema.keys():
                 line.append('SERIAL PRIMARY KEY')
@@ -193,16 +245,35 @@ class Connection(Base,object):
 
 
     def _action_select(self):
-        return self.query_parts['action'] + ' ' + self.query_parts['field'] + ' FROM ' + self.query_parts['table']
+        return self.query_parts['action'] + ' ' + self.query_parts['field'] + ' FROM ' + self.query_parts['table'] + ' ' + self.query_parts['where'] + ' ' + self.query_parts['order'] + ' ' + self.query_parts['pagination']
 
 
     def _action_insert(self):
         valueArr = []
-        for field, value in self.query_parts['data'].items():
+        Console.error(self.query_parts)
+        for field, value in self.query_parts['data'][0].items():
             valueArr.append(f'%({str(field)})s')
 
         return self.query_parts['action'] + ' ' + self.query_parts['table'] + ' (' + self.query_parts['field'] + ') VALUES (' + ','.join(valueArr) + ') RETURNING ' + ','.join(self.query_parts['pk'])
 
 
+    def _action_update(self):
+        Console.error(self.query_parts)
+        Console.error(self.query_parts_og)
+
+        rowArr = []
+        for field, value in self.query_parts['data'][0].items():
+            rowArr.append(f'"{field}" = %({str(field)})s')
+
+
+        return self.query_parts['action'] + ' ' + self.query_parts['table'] + ' SET ' + ','.join(rowArr)
+
     def _reset(self):
         self.query_parts = self.query_parts_og
+
+    '''
+    converts keywords to this database specific keywords
+    '''
+    def _translate(self, value):
+
+        return value
