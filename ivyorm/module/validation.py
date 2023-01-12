@@ -98,11 +98,17 @@ class Validation:
         return value, error
 
 
-    def _check_size(self, option, value:any):
+    def _check_size(self, option: int, value: any):
         if value is None:
             return None, None
 
         error = None
+        if type(value) == int:
+            return value, error
+
+        if len(value) > option:
+            error = f'Value to large for the field. Max size is {option}'
+        
         return value, error
 
 

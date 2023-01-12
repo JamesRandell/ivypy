@@ -67,3 +67,7 @@ class Console:
     def db(cls, string):
         stack = Console.stack()
         print(f"{stack}: {Color.GREY}{string}{Color.END}")
+
+    @classmethod
+    def header(cls, string):
+        print(f"{Color.HEADER}{string}{Color.END}")

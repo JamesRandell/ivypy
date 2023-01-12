@@ -8,26 +8,26 @@ class Connection(Base,object):
 
     _instances = {}
 
-    def __new__(cls):
+    def __new__(cls, connectionInfo):
         if not hasattr(cls, 'instance'):
             print('Creating the object...')
             cls.instance = super(Connection, cls).__new__(cls)
         return cls.instance
 
 
-    def __init__(self):
-        self.connection = self.connect()
+    def __init__(self, connectionInfo):
+        self.connection = self.connect(connectionInfo)
         self.query_parts_og = {}
         self.query_parts = {}
 
 
-    def connect(self):
+    def connect(self, connectionInfo):
         Console.info('Running connect in connector....')
-        conn = psycopg2.connect(database="test",
-                                host="localhost",
-                                user="root",
-                                password="root",
-                                port="5432")
+        conn = psycopg2.connect(database=connectionInfo['database'],
+                                host=connectionInfo['host'],
+                                user=connectionInfo['user'],
+                                password=connectionInfo['password'],
+                                port=connectionInfo['port'])
 
         conn.autocommit = True
 
@@ -60,11 +60,16 @@ class Connection(Base,object):
         if hasattr(self, do) and callable(func := getattr(self, do)):
             command = func()
 
-        Console.log(self.query_parts)
-        Console.log(f'{command}')
-        success, data = self._run(command)
-        Console.db(data)
-        return success, data
+        if command:
+            Console.log(self.query_parts)
+            Console.log(f'{command}')
+            success, data, meta = self._run(command)
+            Console.db(data)
+        else:
+            Console.log('No database command to run')
+            return False, []
+            
+        return success, data, meta
 
         
 
@@ -77,7 +82,6 @@ class Connection(Base,object):
             '''
             little check to see if we're working with a single row of data (a dict)
             '''
-            Console.ok(self.query_parts['data'])
             if len(self.query_parts['data']) > 0:
                 cursor.execute(queryStr, self.query_parts['data'][0])
             else:
@@ -89,6 +93,7 @@ class Connection(Base,object):
             Console.error(f'{type(err)}')
             success = False
 
+        count = cursor.rowcount
         try:
             columns: list = [col.name for col in cursor.description]
             res = cursor.fetchall()
@@ -110,8 +115,9 @@ class Connection(Base,object):
 
         cursor.close()
 
-        
-        return success, result        
+        meta:dict = {}
+        meta['count'] = count
+        return success, result, meta    
         
 
     def _process_field(self):
@@ -159,7 +165,6 @@ class Connection(Base,object):
 
 
     def _pagination(self, value):
-
         if not value:
             return ''
 
@@ -180,7 +185,7 @@ class Connection(Base,object):
         length = len(whereList)
         counter = 0
 
-        self.query_parts['data'].append([])
+        self.query_parts['data'].append({})
 
         for field, value, operation, group_operation in whereList:
 
@@ -195,13 +200,13 @@ class Connection(Base,object):
             
             whereArr.append(f'("{field}" {self._translate(operation)} %({field}{counter})s) {group_operation}')
             data_field_name = f'{field}{counter}'
+            
             self.query_parts['data'][0][f'{field}{counter}'] = value
 
             if type(counter) == int:
                 counter = counter + 1
 
         return 'WHERE ' + ' '.join(whereArr)
-
 
 
     def _database(self, value):
@@ -214,8 +219,6 @@ class Connection(Base,object):
 
     def _pk(self, value):
         return [f'"{field}"' for field in value]
-        
-        
 
 
     def _action_create(self):
@@ -263,19 +266,24 @@ class Connection(Base,object):
 
 
     def _action_update(self):
-        Console.error(self.query_parts_og)
-        Console.error(self.query_parts)
-
+        if len(self.query_parts['data']) == 0:
+            return False
+            
         rowArr = []
         for field, value in self.query_parts['data'][0].items():
             if field not in self.query_parts_og['pk']:
                 rowArr.append(f'"{field}" = %({str(field)})s')
 
-
         return self.query_parts['action'] + ' ' + self.query_parts['table'] + ' SET ' + ','.join(rowArr) + ' ' + self.query_parts['where']
+
+
+    def _action_delete(self):
+        return self.query_parts['action'] + ' FROM ' + self.query_parts['table'] + ' ' + self.query_parts['where']
+
 
     def _reset(self):
         self.query_parts = self.query_parts_og
+
 
     '''
     converts keywords to this database specific keywords

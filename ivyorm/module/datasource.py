@@ -18,7 +18,17 @@ class Datasource(Dictionary, Validation):
         'pk':{},
         'data':[]
     }
+
+    @property
+    def error(self):
+        return self._error
+
     
+    @error.setter
+    def error(self, errorString):
+        self._error.append(errorString)
+
+
     @property
     def data(self):
         return self._data
@@ -36,31 +46,40 @@ class Datasource(Dictionary, Validation):
         fieldList = [*data[0],]
         self.queryParts["field"] = Validation.fieldExists(self, fieldList)
         
+        self.queryParts['data'] = []
+
         for row in data:
-            Console.ok(row)
             dataDict, error = Validation.check(self, row)
         
-            self.error = error
+            if error:
+                self.error = error
+                continue
 
+            temp = {}
             rowData = {}
             for field in self.queryParts["field"]:
                 #self._data[field] = dataDict[field]
                 #self.queryParts['data'][field] = dataDict[field]
                 rowData[field] = dataDict[field]
+                temp[field] = dataDict[field]
 
+            self.queryParts['data'].append(temp)
+            
             self._data.append(rowData)
 
 
-    def __init__(self, schemaFile):
+    def __init__(self, schemaFile, connectionInfo: dict):
         Console.info('Datasource instance.................')
         super().__init__(schemaFile)
         
         database_type = self.database_spec['type']
 
-        self.db = import_module(f'.module.connection.{database_type}', package='ivyorm').Connection()
+        self.db = import_module(f'.module.connection.{database_type}', package='ivyorm').Connection(connectionInfo)
         self._data = []
-        self.error = {}
+        self._error = []
         self.id: any
+        self.count: int = 0
+
 
         self.field(self.field_spec.keys())
         self.database(self.database_spec['name'])
@@ -72,16 +91,12 @@ class Datasource(Dictionary, Validation):
         self.queryParts['action'] = 'select'
 
         if not self.error:
-
-            success, result = self.db.query(self.queryParts)
-            #self._data = result
+            success, result, meta = self.db.query(self.queryParts)
 
             if result:
-                Console.warn(result)
                 self._data = result
             
             return success
-            
 
         return False
 
@@ -98,9 +113,9 @@ class Datasource(Dictionary, Validation):
                 self.data = dataInput
 
         if not self.error:
-            self.queryParts['data'] = self.data
+            #self.queryParts['data'] = self.data
 
-            success, result = self.db.query(self.queryParts)
+            success, result, meta  = self.db.query(self.queryParts)
             self.id = result[0][self.queryParts['pk'][0]]
             #self.data[0][ self.queryParts['pk'][0] ] = self.id
             
@@ -143,13 +158,23 @@ class Datasource(Dictionary, Validation):
                 items = [field, value, '=']
                 self.where(items)
 
-        Console.ok(self.queryParts)
-        success, result = self.db.query(self.queryParts)
+        success, result, meta  = self.db.query(self.queryParts)
 
         return success
 
+
+    def delete(self):
+        self.queryParts['action'] = 'delete'
+        
+        if not self.queryParts['where']:
+            self.error = 'arguments are a requirement for a DELETE statement'
+
+        success, result, meta = self.db.query(self.queryParts)
+
+        return success
+
+
     def field(self, fields: list):
-        Console.info('field')
         self.queryParts["field"] = Validation.fieldExists(self, fields)
         return self
     
@@ -203,7 +228,6 @@ class Datasource(Dictionary, Validation):
 
 
     def limit(self, value):
-        Console.info('limit')
         self.queryParts["pagination"]["limit"] = value
         return self    
 
@@ -238,3 +262,13 @@ class Datasource(Dictionary, Validation):
     def drop(self):
         self.queryParts["action"] = 'drop'
         self.db.query(self.queryParts)
+
+    
+
+    '''
+    Resets the queryParts dict to blank all the keys
+    '''
+    def reset(self):
+        for key in self.queryParts:
+            if type(self.queryParts[key]) in [list, tuple, dict]:
+                self.queryParts[key].clear()
