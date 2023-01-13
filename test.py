@@ -22,11 +22,22 @@ result = test.insert(arr)
 test.field(['ID','code']).order([['ID','DESC']]).limit(3).select()
 
 
-arr = {'addressID':100,'code':'else','ID':2}
+arr = {'addressID':100,'code':'else'}
 test.update(arr)
 
 
-test.reset()
-test.where(['ID',4])
-test.delete()
 
+test.where(['am',None])
+test.select()
+
+test.where(['ID',11])
+test.select()
+
+test.where(['ID',12])
+test.select()
+
+test.where(['ID',13])
+test.select()
+
+test.where(['ID',14])
+test.select()

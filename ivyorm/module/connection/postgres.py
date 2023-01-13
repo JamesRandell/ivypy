@@ -198,6 +198,10 @@ class Connection(Base,object):
             if len(whereList) == 1:
                 counter = ''
             
+            if value is None:
+                whereArr.append(f'("{field}" IS NULL {group_operation})')
+                continue
+
             whereArr.append(f'("{field}" {self._translate(operation)} %({field}{counter})s) {group_operation}')
             data_field_name = f'{field}{counter}'
             

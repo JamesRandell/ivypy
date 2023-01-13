@@ -75,16 +75,10 @@ class Datasource(Dictionary, Validation):
         database_type = self.database_spec['type']
 
         self.db = import_module(f'.module.connection.{database_type}', package='ivyorm').Connection(connectionInfo)
-        self._data = []
-        self._error = []
-        self.id: any
-        self.count: int = 0
+        
 
 
-        self.field(self.field_spec.keys())
-        self.database(self.database_spec['name'])
-        self.table(self.table_spec['name'])
-        self.pk(self.table_spec['pk'])
+        self.reset()
         
 
     def select(self):
@@ -95,9 +89,11 @@ class Datasource(Dictionary, Validation):
 
             if result:
                 self._data = result
-            
+                
+            self.reset()
             return success
 
+        self.reset()
         return False
 
 
@@ -118,9 +114,10 @@ class Datasource(Dictionary, Validation):
             success, result, meta  = self.db.query(self.queryParts)
             self.id = result[0][self.queryParts['pk'][0]]
             #self.data[0][ self.queryParts['pk'][0] ] = self.id
-            
+            self.reset()
             return success
 
+        self.reset()
         return False
 
 
@@ -159,6 +156,7 @@ class Datasource(Dictionary, Validation):
                 self.where(items)
 
         success, result, meta  = self.db.query(self.queryParts)
+        self.reset()
 
         return success
 
@@ -170,14 +168,21 @@ class Datasource(Dictionary, Validation):
             self.error = 'arguments are a requirement for a DELETE statement'
 
         success, result, meta = self.db.query(self.queryParts)
-
+        self.reset()
+        
         return success
 
 
-    def field(self, fields: list):
+    def field(self, fields: list = None):
+        if not fields:
+            self.queryParts["field"] = self.field_spec.keys()
+            return self
+
         self.queryParts["field"] = Validation.fieldExists(self, fields)
+
         return self
     
+
     '''
     Expects a list of lists
     '''
@@ -257,11 +262,13 @@ class Datasource(Dictionary, Validation):
 
         self.queryParts["field"] = fields
         self.db.query(self.queryParts)
+        self.reset()
 
 
     def drop(self):
         self.queryParts["action"] = 'drop'
         self.db.query(self.queryParts)
+        self.reset()
 
     
 
@@ -272,3 +279,14 @@ class Datasource(Dictionary, Validation):
         for key in self.queryParts:
             if type(self.queryParts[key]) in [list, tuple, dict]:
                 self.queryParts[key].clear()
+
+        self._data: list = []
+        self._error: list = []
+        self.id: any
+        self.count: int = 0
+
+
+        self.field()
+        self.database(self.database_spec['name'])
+        self.table(self.table_spec['name'])
+        self.pk(self.table_spec['pk'])
