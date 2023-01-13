@@ -76,7 +76,10 @@ class Datasource(Dictionary, Validation):
 
         self.db = import_module(f'.module.connection.{database_type}', package='ivyorm').Connection(connectionInfo)
         
-
+        self._data: list = []
+        self._error: list = []
+        self.id: any
+        self.count: int = 0
 
         self.reset()
         
@@ -86,11 +89,10 @@ class Datasource(Dictionary, Validation):
 
         if not self.error:
             success, result, meta = self.db.query(self.queryParts)
-
-            if result:
-                self._data = result
-                
+            
             self.reset()
+            self._data = result
+            
             return success
 
         self.reset()
@@ -280,10 +282,7 @@ class Datasource(Dictionary, Validation):
             if type(self.queryParts[key]) in [list, tuple, dict]:
                 self.queryParts[key].clear()
 
-        self._data: list = []
-        self._error: list = []
-        self.id: any
-        self.count: int = 0
+        
 
 
         self.field()
