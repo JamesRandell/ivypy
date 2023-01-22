@@ -49,8 +49,15 @@ class Connection(Base,object):
                 continue
             do = f"_{key}"
             
+            
             if hasattr(self, do) and callable(func := getattr(self, do)):
-                self.query_parts[key] = func(self.query_parts_og[key])
+
+                '''
+                check to see if the key already exists. For instance, in a select with a where statement, or anything that 
+                requires parameters, we populate the 'data' key with those parameters.
+                '''
+                if key not in self.query_parts:
+                    self.query_parts[key] = func(self.query_parts_og[key])
 
         self.query_parts['action'] = self._action(self.query_parts_og['action'])
 
@@ -61,12 +68,12 @@ class Connection(Base,object):
             command = func()
 
         if command:
-            Console.log(self.query_parts)
-            Console.log(f'{command}')
+            Console.db(self.query_parts)
+            Console.db(f'{command}')
             success, data, meta = self._run(command)
             Console.db(data)
         else:
-            Console.log('No database command to run')
+            Console.db('No database command to run')
             return False, []
             
         return success, data, meta
@@ -185,7 +192,10 @@ class Connection(Base,object):
         length = len(whereList)
         counter = 0
 
-        self.query_parts['data'].append({})
+        if 'data' in self.query_parts:
+            self.query_parts['data'].append({})
+        else:
+            self.query_parts['data'] = [{}]
 
         for field, value, operation, group_operation in whereList:
 

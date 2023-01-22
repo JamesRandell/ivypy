@@ -8,7 +8,7 @@ db: dict = {
     "port":"5432"
 }
 test = Datasource('test_schema.json', db)
-
+'''
 #test.drop()
 #test.create()
 arr = {'addressID':100,'fdfd':1,'code':'something'}
@@ -24,20 +24,8 @@ test.field(['ID','code']).order([['ID','DESC']]).limit(3).select()
 
 arr = {'addressID':100,'code':'else'}
 test.update(arr)
+'''
 
-
-
-test.where(['am',None])
-test.select()
-
-test.where(['ID',11])
-test.select()
-
-test.where(['ID',12])
-test.select()
-
-test.where(['ID',13])
-test.select()
-
-test.where(['ID',14])
-test.select()
+orm = Datasource('test_schema.json', db)
+orm.where(['ID', 1])
+orm.select()
